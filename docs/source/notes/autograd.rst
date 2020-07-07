@@ -210,3 +210,79 @@ No thread safety on C++ hooks
 Autograd relies on the user to write thread safe C++ hooks. If you want the hook
 to be correctly applied in multithreading environment, you will need to write
 proper thread locking code to ensure the hooks are thread safe.
+
+Autograd for Complex Numbers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+What notion of complex derivative does PyTorch use?
+***************************************************
+
+   PyTorch follows `_JAX's <https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html#Complex-numbers-and-differentiation>`
+   convention for autograd for Complex Numbers.
+
+    For a function :math:`F: C → C`
+
+    .. math::
+        def F(z):
+            x, y = real(z), imag(z)
+            return u(x, y) + v(x, y) * 1j
+
+    The JVP and VJP for function :math:`F` are defined as:
+
+    .. math::
+
+        J = \begin{bmatrix}
+            \partial_0u(x, y) & \partial_1u(x, y)\\
+            \partial_0v(x, y) & \partial_1v(x, y) \end{bmatrix}
+
+        def JVP(tangent):
+            c, d = real(tangent), imag(tangent)
+            return \begin{bmatrix} 1 & i \end{bmatrix} * J * \begin{bmatrix} c \\ d \end{bmatrix}
+
+        def VJP(cotangent):
+            c, d = real(cotangent), imag(cotangent)
+            return \begin{bmatrix} c & -d \end{bmatrix} * J * \begin{bmatrix} 1 \\ -i \end{bmatrix}
+
+What happens if I call backward() on a complex scalar?
+******************************************************
+
+    1. For holomorphic functions, you get the same result as expected from using Cauchy-Riemann equations.
+    2. For non-holomorphic functions, the partial derivatives of :math:`v(x, y)` are discarded.
+
+Why is there a negative sign in the formula above?
+**************************************************
+
+    For a function F: V → W, where are V and W are vector spaces. The output of
+    the Vector-Jacobian Product (VJP) :math:`VJP : V → (W^* → V^*)` is a linear map
+    from :math:`W^* to V^*` (explained in `Chapter 4 of _Dougal’s thesis <https://dougalmaclaurin.com/phd-thesis.pdf>`_).
+
+    The negative signs in the above VJP computation are due to conjugation. The first
+    vector in the output returned by VJP for a given cotangent is a covector (\in :math:`C^*`),
+    and the last vector in the output is used to get the result in :math:`C`
+    since the final result of reverse-mode differentiation of a function is a covector belonging
+    to :math:`C^*` (explained in `Chapter 4 of _Dougal’s thesis <https://dougalmaclaurin.com/phd-thesis.pdf>`_).
+
+How are the JVP and VJP defined for :math:`R^2 -> C` and :math:`C -> R^2` functions?
+************************************************************************************
+
+    The JVP and VJP for a :math:`f1: C → R^2` are defined as:
+
+    ..math::
+        def JVP(tangent):
+            c, d = real(tangent), imag(tangent)
+            return J * \begin{bmatrix} c \\ d \end{bmatrix}
+
+        def VJP(cotangent):
+            c, d = real(cotangent), imag(cotangent)
+            return \begin{bmatrix} c & d \end{bmatrix} * J * \begin{bmatrix} 1 \\ -i \end{bmatrix}
+
+    The JVP and VJP for a :math:`f1: R^2 → C` are defined as:
+
+    ..math::
+        def JVP(tangent):
+            c, d = real(tangent), imag(tangent)
+            return \begin{bmatrix} 1 & i \end{bmatrix} * J * \begin{bmatrix} c \\ d \end{bmatrix}
+
+        def VJP(cotangent):
+            c, d = real(cotangent), imag(cotangent)
+            return \begin{bmatrix} c & -d \end{bmatrix} * J
