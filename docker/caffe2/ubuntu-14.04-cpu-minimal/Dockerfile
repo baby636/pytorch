@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:trusty-20190515
 LABEL maintainer="aaronmarkham@fb.com"
 
 # caffe2 install with cpu support
