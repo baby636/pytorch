@@ -2,3 +2,4 @@ sphinx==2.4.4
 -e git+https://github.com/pytorch/pytorch_sphinx_theme.git#egg=pytorch_sphinx_theme
 sphinxcontrib.katex
 matplotlib
+requests>=2.32.0 # not directly required, pinned by Snyk to avoid a vulnerability
